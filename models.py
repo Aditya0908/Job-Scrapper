@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import ClassVar, Optional
 
 
 class ExperienceLevel(str, Enum):
@@ -29,30 +30,133 @@ class UserProfile:
     role: str
     location: str
     remote_ok: bool = True
+    search_locations: Optional[list[str]] = field(default=None)
 
     @property
     def experience_level(self) -> ExperienceLevel:
         return ExperienceLevel.from_years(self.experience_years)
 
+    # Generic job-title suffix words that carry no domain meaning
+    _GENERIC_SUFFIXES: ClassVar[frozenset[str]] = frozenset({
+        "engineer", "developer", "specialist", "analyst", "manager",
+        "architect", "lead", "head", "director", "officer", "associate",
+        "consultant", "intern", "trainee", "researcher", "expert",
+        "professional", "executive", "coordinator", "advisor",
+    })
+
+    # When the role suffix is one of these, swap with the others for extra reach
+    _SUFFIX_SWAPS: ClassVar[list[str]] = ["Engineer", "Developer", "Specialist"]
+
+    # Common acronym → full form mappings (role-agnostic)
+    _ACRONYM_EXPAND: ClassVar[dict[str, str]] = {
+        "ai": "Artificial Intelligence",
+        "ml": "Machine Learning",
+        "llm": "Large Language Model",
+        "nlp": "Natural Language Processing",
+        "cv":  "Computer Vision",
+        "dl":  "Deep Learning",
+        "sre": "Site Reliability Engineer",
+        "qa":  "Quality Assurance",
+        "bi":  "Business Intelligence",
+        "rpa": "Robotic Process Automation",
+    }
+
+    def _role_domain_words(self) -> list[str]:
+        """
+        Strip generic suffix words from the role to get the domain-specific core.
+        e.g. 'AI Engineer' → ['AI']
+             'Machine Learning Engineer' → ['Machine', 'Learning']
+             'Product Manager' → ['Product']
+             'DevOps' → ['DevOps']
+        """
+        words = self.role.split()
+        domain = [w for w in words if w.lower() not in self._GENERIC_SUFFIXES]
+        return domain if domain else words  # fallback: use all words
+
     @property
     def search_keywords(self) -> list[str]:
-        """Generate search keyword combinations from the profile."""
-        keywords = [self.role]
-        top_skills = self.skills[:3]
-        if top_skills:
-            keywords.append(f"{self.role} {' '.join(top_skills)}")
-        for skill in top_skills:
-            keywords.append(f"{skill} {self.role}")
+        """
+        Dynamically generate role synonyms from the profile role.
+        Works for ANY role — no hardcoded role names.
+        Strategy:
+          1. Start with the exact role string from the profile
+          2. Swap the role suffix (Engineer ↔ Developer ↔ Specialist)
+          3. Expand known acronyms in the domain words (AI → Artificial Intelligence)
+        """
+        keywords: list[str] = [self.role]
+        words = self.role.split()
+
+        # --- Suffix swap: Engineer ↔ Developer ↔ Specialist ---
+        if words:
+            suffix = words[-1]
+            prefix_parts = words[:-1]
+            if suffix in self._SUFFIX_SWAPS and prefix_parts:
+                prefix = " ".join(prefix_parts)
+                for swap in self._SUFFIX_SWAPS:
+                    if swap != suffix:
+                        candidate = f"{prefix} {swap}"
+                        if candidate not in keywords:
+                            keywords.append(candidate)
+
+        # --- Acronym expansion in domain words ---
+        domain = self._role_domain_words()
+        for word in domain:
+            expanded = self._ACRONYM_EXPAND.get(word.lower())
+            if expanded:
+                # Build the full role with acronym replaced by expansion
+                new_role = self.role.replace(word, expanded)
+                if new_role not in keywords:
+                    keywords.append(new_role)
+
         return keywords
 
     @property
+    def linkedin_experience_codes(self) -> list[str]:
+        """
+        LinkedIn f_E URL parameter values:
+          1 = Internship  (0 exp, student)
+          2 = Entry level (0-2 yrs)
+          3 = Associate   (2-5 yrs)
+          4 = Mid-Senior  (5+ yrs)
+          5 = Director
+        """
+        years = self.experience_years
+        if years == 0:
+            return ["1", "2"]       # true fresh grad / no exp → include intern
+        elif years <= 2:
+            return ["2"]            # 1-2 yrs → Entry Level only
+        elif years <= 5:
+            return ["2", "3"]       # 3-5 yrs → Entry + Associate
+        elif years <= 9:
+            return ["3", "4"]       # 6-9 yrs → Associate + Mid-Senior
+        else:
+            return ["4", "5"]       # 10+ yrs → Mid-Senior + Director
+
+    @property
     def location_queries(self) -> list[str]:
+        """
+        If `search_locations` is set in profile.json → use those directly.
+        City-level searches (Bengaluru, Hyderabad) return real results on LinkedIn;
+        country-level searches (India) cause LinkedIn to pad with algo-recommended
+        unrelated jobs.
+        Falls back to parsing the `location` string if search_locations is not set.
+        """
+        if self.search_locations:
+            return [loc.strip() for loc in self.search_locations if loc.strip()]
+
+        # Legacy: auto-parse location string
         locations = []
-        if self.remote_ok:
-            locations.append("Remote")
-        loc = self.location.strip()
-        if loc.lower() not in ("remote", ""):
-            locations.append(loc)
+        raw = self.location.strip()
+        parts = [p.strip() for p in re.split(r"[/,]", raw) if p.strip()]
+        for part in parts:
+            if part.lower() == "remote":
+                if "Remote" not in locations:
+                    locations.append("Remote")
+            else:
+                if part not in locations:
+                    locations.append(part)
+        if self.remote_ok and "Remote" not in locations:
+            locations.insert(0, "Remote")
         return locations if locations else ["Remote"]
 
     @classmethod
@@ -70,7 +174,10 @@ class UserProfile:
             nums = re.findall(r"\d+", exp_raw)
             exp_raw = int(nums[0]) if nums else 0
 
+        # remote_ok is True if "remote" appears anywhere in the location string
         remote_ok = "remote" in location.lower()
+
+        search_locations_raw = data.get("search_locations") or data.get("Search_locations")
 
         return cls(
             skills=skills_raw,
@@ -78,6 +185,7 @@ class UserProfile:
             role=role,
             location=location,
             remote_ok=remote_ok,
+            search_locations=search_locations_raw,
         )
 
 

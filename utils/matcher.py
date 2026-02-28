@@ -21,11 +21,18 @@ from sklearn.metrics.pairwise import cosine_similarity
 if TYPE_CHECKING:
     from models import JobPosting, UserProfile
 
-W_TFIDF = 0.50
+W_TFIDF = 0.40
 W_SKILL = 0.30
-W_EXP = 0.10
+W_EXP = 0.20   # raised from 0.10 — experience match is now strongly weighted
 W_LOC = 0.10
 PROMO_PENALTY = 0.30
+
+# If a job requires MORE than this many years then the profile, apply a hard multiplier.
+# Threshold is INCLUSIVE: overshoot >= N triggers the penalty.
+# 1yr profile + 3yr job requirement = overshoot 2 → penalised
+# 1yr profile + 2yr job requirement = overshoot 1 → NOT penalised (1yr gap is acceptable)
+EXP_OVERSHOOT_THRESHOLD = 2   # years
+EXP_OVERSHOOT_MULTIPLIER = 0.20  # crush score to 20% — effectively buries the listing
 
 
 def _normalise(text: str) -> str:
@@ -40,17 +47,28 @@ def _skill_overlap(profile_skills: list[str], job_text: str) -> float:
     return matched / len(profile_skills)
 
 
-def _experience_score(profile_years: int, job_exp_text: str) -> float:
-    """Return 1.0 if the profile experience falls within the job's stated range."""
+def _experience_score(profile_years: int, job_exp_text: str) -> tuple[float, bool]:
+    """
+    Return (score 0-1, hard_penalise).
+    hard_penalise=True means the job asks for far more experience than the profile has.
+    """
     nums = re.findall(r"\d+", job_exp_text)
     if not nums:
-        return 0.5  # no info — neutral
+        return 0.5, False   # no info — neutral, no penalty
+
     low = int(nums[0])
     high = int(nums[-1]) if len(nums) > 1 else low + 3
+
+    # Hard penalty: job minimum is AT LEAST threshold years above profile years
+    overshoot = low - profile_years
+    if overshoot >= EXP_OVERSHOOT_THRESHOLD:   # >= not > so 3yr req vs 1yr profile IS penalised
+        return 0.0, True    # completely out of range
+
     if low <= profile_years <= high:
-        return 1.0
+        return 1.0, False
     distance = min(abs(profile_years - low), abs(profile_years - high))
-    return max(0.0, 1.0 - distance * 0.15)
+    score = max(0.0, 1.0 - distance * 0.20)   # steeper penalty per year gap
+    return score, False
 
 
 def _location_score(profile_loc: str, job_loc: str, remote_ok: bool) -> float:
@@ -88,7 +106,21 @@ def score_jobs(
 
         tfidf_score = float(sims[i])
         skill_score = _skill_overlap(profile.skills, job.description)
-        exp_score = _experience_score(profile.experience_years, job.experience_required)
+
+        # Use experience_required field; fall back to mining description text if empty
+        exp_text = job.experience_required
+        if not exp_text:
+            exp_match = re.search(
+                r"(\d+\s*[\+\-]\s*\d*|\d+)\s*(?:to\s*\d+\s*)?"
+                r"(?:\+\s*)?(?:years?|yrs?)"
+                r"(?:\s*(?:of\s+)?(?:professional\s+)?(?:relevant\s+)?experience)?",
+                job.description,
+                re.IGNORECASE,
+            )
+            if exp_match:
+                exp_text = exp_match.group(0).strip()
+
+        exp_score, exp_hard_miss = _experience_score(profile.experience_years, exp_text)
         loc_score = _location_score(profile.location, job.location, profile.remote_ok)
 
         raw = (
@@ -98,12 +130,17 @@ def score_jobs(
             + W_LOC * loc_score
         )
 
+        # Hard multiplier: job requires significantly more experience → crush score
+        if exp_hard_miss:
+            raw = raw * EXP_OVERSHOOT_MULTIPLIER
+            reasons.append("⚠ Experience mismatch (over-requirement)")
+
         if tfidf_score > 0.3:
             reasons.append(f"Strong JD match ({tfidf_score:.0%})")
         if skill_score >= 0.5:
             matched = [s for s in profile.skills if s.lower() in job.description.lower()]
             reasons.append(f"Skills: {', '.join(matched[:5])}")
-        if exp_score >= 0.8:
+        if exp_score >= 0.8 and not exp_hard_miss:
             reasons.append("Experience aligns")
         if loc_score >= 0.8:
             reasons.append("Location fits")

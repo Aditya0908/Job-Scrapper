@@ -45,9 +45,10 @@ async def run_agent(
     profile_data: dict,
     sites: list[str] | None = None,
     max_per_site: int = 25,
-    min_score: float = 20.0,
+    min_score: float = 0.0,
     headless: bool = True,
     output_file: str | None = None,
+    include_promoted: bool = False,
 ) -> list[JobPosting]:
     """
     Main entry point.
@@ -93,15 +94,28 @@ async def run_agent(
 
     console.print(f"\n[bold]Total raw results:[/bold] {len(all_jobs)}")
 
+    if not all_jobs:
+        console.print("[red]No jobs scraped at all. Possible causes:[/red]")
+        console.print("  [yellow]1.[/yellow] LinkedIn is showing an auth-wall (run with [bold]--no-headless[/bold] to log in)")
+        console.print("  [yellow]2.[/yellow] CSS selectors changed — check debug output above")
+        console.print("  [yellow]3.[/yellow] Network issue or rate limiting")
+        return []
+
     console.print("[bold yellow]Scoring & filtering...[/bold yellow]")
     scored = score_jobs(profile, all_jobs)
 
-    relevant = [j for j in scored if j.fit_score >= min_score and not j.is_promoted]
     promoted_count = sum(1 for j in scored if j.is_promoted)
+    if include_promoted:
+        relevant = [j for j in scored if j.fit_score >= min_score]
+    else:
+        relevant = [j for j in scored if j.fit_score >= min_score and not j.is_promoted]
 
+    low_score_count = len(scored) - len(relevant) - (0 if include_promoted else promoted_count)
     console.print(
-        f"[dim]Filtered out {promoted_count} promoted listings "
-        f"and {len(scored) - len(relevant) - promoted_count} low-score jobs[/dim]"
+        f"[dim]Scraped {len(scored)} total | "
+        f"{promoted_count} promoted ({'included' if include_promoted else 'excluded'}) | "
+        f"{low_score_count} below score {min_score} | "
+        f"{len(relevant)} shown[/dim]"
     )
 
     _print_results(relevant)

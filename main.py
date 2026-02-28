@@ -61,8 +61,13 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument(
         "--min-score",
         type=float,
-        default=20.0,
-        help="Minimum fit score to show (0-100, default: 20)",
+        default=0.0,
+        help="Minimum fit score to show (0-100, default: 0 = show all)",
+    )
+    p.add_argument(
+        "--include-promoted",
+        action="store_true",
+        help="Include promoted/sponsored listings (excluded by default)",
     )
     p.add_argument(
         "--no-headless",
@@ -103,6 +108,7 @@ def main() -> None:
         min_score=args.min_score,
         headless=not args.no_headless,
         output_file=args.output,
+        include_promoted=args.include_promoted,
     ))
 
 

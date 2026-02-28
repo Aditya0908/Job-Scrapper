@@ -1,6 +1,32 @@
+# Python
 __pycache__/
 *.pyc
-.env
+*.pyo
+*.pyd
 *.egg-info/
 dist/
 build/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# JSON files (profile, session data, output)
+*.json
+
+# Browser session / playwright state
+sessions/
+playwright-state/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
