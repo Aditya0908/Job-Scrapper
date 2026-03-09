@@ -1,0 +1,155 @@
+╭── Auto-Apply Agent ──╮
+│ Applicant: Aditya    │
+│ Jain                 │
+│ Email:               │
+│ aditya@example.com   │
+│ Job URL:             │
+│ https://www.linkedin │
+│ .com/jobs/view/43806 │
+│ 81259/               │
+│ Mode: DRY RUN        │
+╰──────────────────────╯
+Error occurred during getting browser(s): random, but was suppressed with fallback.
+
+Navigating to job 
+page...
+  [01] 🖱️ CLICK_APPLY  
+(Page 1/1 | Fields: 0/0 
+filled | Errors: 0 | 
+Phase: click_apply)
+  Clicking apply 
+button...
+  [02] 🔍 ANALYZE_PAGE  
+(Page 1/1 | Fields: 0/0 
+filled | Errors: 0 | 
+Phase: analyze_page)
+DEBUG BTN found:   dismiss
+DEBUG BTN found: next  continue to next step
+DEBUG BTN found: skip to search  
+DEBUG BTN found: skip to main content  
+DEBUG BTN found: keyboard shortcuts  
+DEBUG BTN found: close jump menu  
+DEBUG BTN found: search  click to start a search
+DEBUG BTN found: me  
+DEBUG BTN found: for business  
+DEBUG BTN found: show more options  
+DEBUG BTN found: savesave artificial intelligence engineer   at torinit  
+DEBUG BTN found: easy apply  easy apply to artificial intelligence engineer at torinit
+DEBUG BTN found: share  share
+DEBUG BTN found: show more options  
+DEBUG BTN found:   view verified hiring modal
+DEBUG BTN found: remotematches your job preferences, workplace type is remote.  
+DEBUG BTN found: full-timematches your job preferences, job type is full-time.  
+DEBUG BTN found: easy apply  easy apply to artificial intelligence engineer at torinit
+DEBUG BTN found: savesave artificial intelligence engineer   at torinit  
+DEBUG BTN found: show match details  show match details
+DEBUG BTN found: tailor my resume  tailor my resume
+DEBUG BTN found: help me stand out  help me stand out
+DEBUG BTN found: see more  click to see more description
+DEBUG BTN found: follow  follow
+DEBUG BTN found: show more  
+DEBUG BTN found: dismiss premium promotion  
+DEBUG BTN found: privacy & terms  
+DEBUG BTN found: messagingyou are on the messaging overlay. press enter to open the list of conversations.  
+DEBUG BTN found:   
+DEBUG BTN found: compose message  
+DEBUG BTN found: you are on the messaging overlay. press enter to open the list of conversations.  
+  [03] ✏️ FILL_FORM  
+(Page 1/1 | Fields: 0/3 
+filled | Errors: 0 | 
+Phase: fill_form)
+
+
+DEBUG NAV: {
+  "next_btn": "#ember219",
+  "prev_btn": null,
+  "submit_btn": "#jobs-apply-button-id"
+}
+
+
+  [04] ➡️ NAVIGATE_NEXT 
+(Page 1/1 | Fields: 3/3 
+filled | Errors: 0 | 
+Phase: navigate_next)
+  [05] 🔍 ANALYZE_PAGE  
+(Page 2/1 | Fields: 0/0 
+filled | Errors: 0 | 
+Phase: analyze_page)
+DEBUG BTN found: skip to search  
+DEBUG BTN found: skip to main content  
+DEBUG BTN found: keyboard shortcuts  
+DEBUG BTN found: close jump menu  
+DEBUG BTN found: search  click to start a search
+DEBUG BTN found: me  
+DEBUG BTN found: for business  
+DEBUG BTN found: show more options  
+DEBUG BTN found: savesave artificial intelligence engineer   at torinit  
+DEBUG BTN found: easy apply  easy apply to artificial intelligence engineer at torinit
+DEBUG BTN found: share  share
+DEBUG BTN found: show more options  
+DEBUG BTN found:   view verified hiring modal
+DEBUG BTN found: remotematches your job preferences, workplace type is remote.  
+DEBUG BTN found: full-timematches your job preferences, job type is full-time.  
+DEBUG BTN found: easy apply  easy apply to artificial intelligence engineer at torinit
+DEBUG BTN found: savesave artificial intelligence engineer   at torinit  
+DEBUG BTN found: show match details  show match details
+DEBUG BTN found: tailor my resume  tailor my resume
+DEBUG BTN found: help me stand out  help me stand out
+DEBUG BTN found: see more  click to see more description
+DEBUG BTN found: follow  follow
+DEBUG BTN found: show more  
+DEBUG BTN found: dismiss premium promotion  
+DEBUG BTN found: privacy & terms  
+DEBUG BTN found: messagingyou are on the messaging overlay. press enter to open the list of conversations.  
+DEBUG BTN found:   
+DEBUG BTN found: compose message  
+DEBUG BTN found: you are on the messaging overlay. press enter to open the list of conversations.  
+  [06] ✏️ FILL_FORM  
+(Page 2/1 | Fields: 0/1 
+filled | Errors: 0 | 
+Phase: fill_form)
+
+
+DEBUG NAV: {
+  "next_btn": null,
+  "prev_btn": null,
+  "submit_btn": "#jobs-apply-button-id"
+}
+
+
+  [07] 📋 REVIEW  (Page 
+2/1 | Fields: 1/1 filled
+| Errors: 0 | Phase: 
+review)
+Form Review (All Pages) 
+┏━━━━━┳━━━━━┳━━━━━━━━━━┓
+┃ Fi… ┃ Va… ┃ Status   ┃
+┡━━━━━╇━━━━━╇━━━━━━━━━━┩
+│ Ph… │ In… │ OK       │
+│ co… │ (+… │          │
+│ co… │     │          │
+│ co… │     │          │
+│ co… │     │          │
+├─────┼─────┼──────────┤
+│ Mo… │ 98… │ OK       │
+│ ph… │     │          │
+│ nu… │     │          │
+├─────┼─────┼──────────┤
+│ Se… │ En… │ OK       │
+│ La… │ (E… │          │
+├─────┼─────┼──────────┤
+│ Se… │ En… │ OK       │
+│ La… │ (E… │          │
+└─────┴─────┴──────────┘
+
+DRY RUN: Skipping 
+submission.
+
+
+╭─────── Result ───────╮
+│ Dry run completed.   │
+│ Pages analyzed: 2    │
+│ Fields filled: 4     │
+│ Errors encountered:  │
+│ 0                    │
+╰──────────────────────╯
