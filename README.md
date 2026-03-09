@@ -76,6 +76,10 @@ python main.py scrape --profile-file profile.json --output results.json
 # Auto-Apply (LinkedIn Easy Apply only; run from project root)
 python main.py apply --url "https://www.linkedin.com/jobs/view/JOB_ID/" \
   --profile-file user_profile.json --site linkedin --no-headless --dry-run
+
+# One-command run (uses user_profile.json or user_profile.example.json)
+python run_apply.py --dry-run
+python run_apply.py "https://www.linkedin.com/jobs/view/4380681259/"
 ```
 
 ## How Scoring Works
