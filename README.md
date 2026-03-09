@@ -12,12 +12,20 @@ An intelligent job search agent that scrapes multiple job sites, scores each lis
 
 ## Setup
 
+**Run all commands from the project root directory.**
+
 ```bash
 # 1. Install dependencies
 pip install -r requirements.txt
 
 # 2. Install Playwright browsers (one-time)
 playwright install chromium
+
+# 3. (Auto-Apply only) Copy example config and add your API key
+cp .env.example .env
+# Edit .env and set GEMINI_API_KEY (or OPENROUTER_API_KEY)
+cp user_profile.example.json user_profile.json
+# Edit user_profile.json with your details and resume path
 ```
 
 ## Usage
@@ -50,23 +58,24 @@ Save this as `profile.json` (see `profile.example.json`).
 ### Step 3: Run the agent
 
 ```bash
-# Search all sites
-python main.py --profile-file profile.json
+# Scrape: search all sites
+python main.py scrape --profile-file profile.json
 
-# Search specific sites only
-python main.py --profile-file profile.json --sites linkedin naukri
+# Scrape specific sites only
+python main.py scrape --profile-file profile.json --sites linkedin naukri
 
 # Inline profile (no file needed)
-python main.py --profile '{"role":"Backend Engineer","skills":"Python,Go","experience_years":5,"location":"Bangalore"}'
+python main.py scrape --profile '{"role":"Backend Engineer","skills":"Python,Go","experience_years":5,"location":"Bangalore"}'
 
 # Show browser for debugging
-python main.py --profile-file profile.json --no-headless
+python main.py scrape --profile-file profile.json --no-headless
 
 # Save results to JSON
-python main.py --profile-file profile.json --output results.json
+python main.py scrape --profile-file profile.json --output results.json
 
-# Adjust minimum score threshold (0-100)
-python main.py --profile-file profile.json --min-score 30
+# Auto-Apply (LinkedIn Easy Apply only; run from project root)
+python main.py apply --url "https://www.linkedin.com/jobs/view/JOB_ID/" \
+  --profile-file user_profile.json --site linkedin --no-headless --dry-run
 ```
 
 ## How Scoring Works

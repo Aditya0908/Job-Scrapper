@@ -1,0 +1,61 @@
+{
+  "personal_info": {
+    "first_name": "Aditya",
+    "last_name": "Jain",
+    "email": "aditya@example.com",
+    "phone": "+91-9876543210",
+    "linkedin": "https://linkedin.com/in/adityajain",
+    "portfolio": "https://adityajain.dev",
+    "address": "",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "zip_code": "560001",
+    "country": "India"
+  },
+  "resume_path": "./resume.pdf",
+  "cover_letter_path": "",
+  "skills": [
+    "Python", "JavaScript", "React", "Node.js", "PostgreSQL",
+    "Docker", "AWS", "Machine Learning", "REST APIs", "Git"
+  ],
+  "certifications": [],
+  "languages": ["English", "Hindi"],
+  "experience": [
+    {
+      "company": "TechCorp India",
+      "title": "Software Engineer",
+      "start_date": "2022-01",
+      "end_date": "Present",
+      "description": "Building scalable backend services with Python and Node.js. Led migration of monolith to microservices architecture.",
+      "location": "Bengaluru, India"
+    },
+    {
+      "company": "StartupXYZ",
+      "title": "Junior Developer",
+      "start_date": "2020-06",
+      "end_date": "2021-12",
+      "description": "Full-stack development with React and Django. Implemented CI/CD pipelines and automated testing.",
+      "location": "Remote"
+    }
+  ],
+  "education": [
+    {
+      "institution": "Indian Institute of Technology",
+      "degree": "B.Tech",
+      "field": "Computer Science",
+      "graduation_year": "2020",
+      "gpa": "8.5/10"
+    }
+  ],
+  "standard_questions": {
+    "sponsorship_required": "No",
+    "authorized_to_work": "Yes",
+    "notice_period": "30 days",
+    "salary_expectation": "2000000",
+    "willing_to_relocate": "Yes",
+    "years_of_experience": "4",
+    "gender": "Male",
+    "disability": "No",
+    "veteran_status": "No"
+  }
+}

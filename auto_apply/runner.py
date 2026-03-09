@@ -205,12 +205,16 @@ async def _handle_navigate_next(
     button_kind, clicked = await applier.click_next_or_submit(page, state)
 
     if not clicked:
-        state.log("[Runner] Could not find any navigation button.")
+        state.log(
+            "[Runner] Could not find Next/Review/Submit button in modal. "
+            "Tried: aria-labels, data-easy-apply-next-button, footer primary button, getByRole, CSS."
+        )
+        console.print("  [red]No Next/Submit button found — will retry.[/red]")
         state.error_count += 1
         state.consecutive_errors += 1
-        # Don't immediately fail -- maybe we need to scroll or dismiss something
         if state.consecutive_errors >= 3:
             state.phase = Phase.FAILED
+            console.print("  [red bold]Giving up after 3 failed attempts to find the button.[/red bold]")
         return
 
     state.log(f"[Runner] Clicked '{button_kind}' button.")

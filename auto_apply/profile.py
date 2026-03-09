@@ -56,7 +56,12 @@ class ApplicantProfile(BaseModel):
 
     @classmethod
     def from_file(cls, path: str | Path) -> ApplicantProfile:
-        data = json.loads(Path(path).read_text())
+        p = Path(path)
+        if not p.is_absolute():
+            p = p.resolve()
+        if not p.exists():
+            raise FileNotFoundError(f"Profile file not found: {p}")
+        data = json.loads(p.read_text())
         return cls(**data)
 
     def to_context_string(self) -> str:

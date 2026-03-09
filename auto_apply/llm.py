@@ -2,13 +2,25 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import re
 import os
 from typing import Any
 
 import httpx
 
 _TIMEOUT = httpx.Timeout(60.0, connect=10.0)
+_MAX_429_RETRIES = 2
+_DEFAULT_429_WAIT_SEC = 30
+
+
+def _parse_429_retry_seconds(error_text: str) -> int | None:
+    """Parse 'Please retry in X.XXs' from Gemini 429 response. Returns seconds or None."""
+    m = re.search(r"retry in (\d+(?:\.\d+)?)\s*s", error_text, re.IGNORECASE)
+    if m:
+        return max(1, int(float(m.group(1)) + 0.5))
+    return None
 
 
 class LLMError(Exception):
@@ -52,10 +64,21 @@ class LLMClient:
         temperature: float = 0.2,
         max_tokens: int = 4096,
     ) -> str:
-        """Send a prompt and return the text response."""
-        if self.provider == "gemini":
-            return await self._gemini_generate(prompt, system, temperature, max_tokens)
-        return await self._openrouter_generate(prompt, system, temperature, max_tokens)
+        """Send a prompt and return the text response. Retries on 429 with backoff."""
+        last_error = None
+        for attempt in range(_MAX_429_RETRIES + 1):
+            try:
+                if self.provider == "gemini":
+                    return await self._gemini_generate(prompt, system, temperature, max_tokens)
+                return await self._openrouter_generate(prompt, system, temperature, max_tokens)
+            except LLMError as e:
+                last_error = e
+                if "429" in str(e) and attempt < _MAX_429_RETRIES:
+                    wait_sec = _parse_429_retry_seconds(str(e)) or _DEFAULT_429_WAIT_SEC
+                    await asyncio.sleep(wait_sec)
+                    continue
+                raise
+        raise last_error
 
     async def generate_json(
         self,
@@ -64,7 +87,7 @@ class LLMClient:
         temperature: float = 0.1,
         max_tokens: int = 4096,
     ) -> Any:
-        """Send a prompt and parse the response as JSON."""
+        """Send a prompt and parse the response as JSON. (generate() handles 429 retry.)"""
         raw = await self.generate(prompt, system, temperature, max_tokens)
         cleaned = raw.strip()
         if cleaned.startswith("```"):
@@ -99,6 +122,8 @@ class LLMClient:
         }
 
         resp = await self._http.post(url, json=payload)
+        if resp.status_code == 429:
+            raise LLMError(f"Gemini API error 429: {resp.text[:800]}")
         if resp.status_code != 200:
             raise LLMError(f"Gemini API error {resp.status_code}: {resp.text[:500]}")
 

@@ -67,32 +67,122 @@ class ApplyAgent:
     ) -> tuple[str, bool]:
         """Find and click the next navigation button inside the current form.
 
-        Uses a waterfall of strategies: LinkedIn data-attribute -> role-based ->
-        text-based -> CSS patterns.
-
-        Returns:
-            (button_kind, success)
-            button_kind: "next" | "review" | "submit" | "not_found"
+        Uses a waterfall of strategies: LinkedIn aria-labels -> data-attribute ->
+        role-based -> text-based -> CSS patterns. Tries modal first, then full page.
         """
+        # Let the modal footer and buttons finish rendering
+        await human_delay(0.5, 1.0)
+
         modal_sel = state.metadata.get("modal_selector")
         scope = page.locator(modal_sel) if modal_sel else page
+
+        for scope_to_use in (scope, page):
+            kind, clicked = await self._try_nav_button_strategies(page, scope_to_use)
+            if clicked:
+                return kind, True
+        return "not_found", False
+
+    async def _try_nav_button_strategies(self, page: "Page", scope) -> tuple[str, bool]:
+        """Run button-finding strategies against the given scope. Returns (kind, clicked)."""
+        # Strategy 0: LinkedIn Easy Apply aria-labels (exact DOM structure from LinkedIn)
+        for aria in [
+            "Continue to next step",
+            "Submit application",
+            "Review your application",
+            "Next",
+            "Submit",
+            "Review",
+        ]:
+            btn = scope.locator(f"button[aria-label='{aria}']")
+            if await btn.count() > 0:
+                first = btn.first
+                if await first.is_visible():
+                    try:
+                        await first.scroll_into_view_if_needed()
+                        await human_delay(0.2, 0.4)
+                        await first.click()
+                        await human_delay(1.0, 2.5)
+                        return _classify_button_text(aria.lower()), True
+                    except Exception:
+                        try:
+                            await first.click(force=True)
+                            await human_delay(1.0, 2.5)
+                            return _classify_button_text(aria.lower()), True
+                        except Exception:
+                            continue
 
         # Strategy 1: LinkedIn Easy Apply data attribute (covers Next/Review/Submit)
         ea_btn = scope.locator("[data-easy-apply-next-button]")
         if await ea_btn.count() > 0:
             btn = ea_btn.first
-            text = (await btn.text_content() or "").strip().lower()
-            try:
-                await btn.scroll_into_view_if_needed()
-                await human_delay(0.3, 0.6)
-                await btn.click()
-                await human_delay(1.0, 2.5)
-                kind = _classify_button_text(text)
-                return kind, True
-            except Exception:
-                pass
+            if await btn.is_visible():
+                text = (await btn.text_content() or "").strip().lower()
+                try:
+                    await btn.scroll_into_view_if_needed()
+                    await human_delay(0.3, 0.6)
+                    await btn.click()
+                    await human_delay(1.0, 2.5)
+                    return _classify_button_text(text), True
+                except Exception:
+                    try:
+                        await btn.click(force=True)
+                        await human_delay(1.0, 2.5)
+                        return _classify_button_text(text), True
+                    except Exception:
+                        pass
 
-        # Strategy 2: role=button with known names
+        # Strategy 2: Modal footer / action bar (LinkedIn puts Next/Submit here)
+        for footer_sel in [
+            ".artdeco-modal__actionbar button.artdeco-button--primary",
+            ".jobs-easy-apply-modal__footer button.artdeco-button--primary",
+            ".artdeco-modal__actionbar button",
+            "footer.artdeco-modal__actionbar button",
+        ]:
+            btn = scope.locator(footer_sel)
+            if await btn.count() > 0:
+                first = btn.first
+                if await first.is_visible():
+                    text = (await first.text_content() or "").strip().lower()
+                    try:
+                        await first.scroll_into_view_if_needed()
+                        await human_delay(0.2, 0.4)
+                        await first.click()
+                        await human_delay(1.0, 2.5)
+                        return _classify_button_text(text), True
+                    except Exception:
+                        try:
+                            await first.click(force=True)
+                            await human_delay(1.0, 2.5)
+                            return _classify_button_text(text), True
+                        except Exception:
+                            continue
+
+        # Strategy 3: LinkedIn primary button (any blue primary in modal)
+        for sel in [
+            "button.artdeco-button--primary",
+            ".jobs-easy-apply-modal button.artdeco-button--primary",
+            "footer button.artdeco-button--primary",
+        ]:
+            btn = scope.locator(sel)
+            if await btn.count() > 0:
+                first = btn.first
+                if await first.is_visible():
+                    text = (await first.text_content() or "").strip().lower()
+                    try:
+                        await first.scroll_into_view_if_needed()
+                        await human_delay(0.2, 0.5)
+                        await first.click()
+                        await human_delay(1.0, 2.5)
+                        return _classify_button_text(text), True
+                    except Exception:
+                        try:
+                            await first.click(force=True)
+                            await human_delay(1.0, 2.5)
+                            return _classify_button_text(text), True
+                        except Exception:
+                            continue
+
+        # Strategy 4: role=button with known names
         button_names = [
             ("Submit application", "submit"),
             ("Submit", "submit"),
@@ -120,7 +210,7 @@ class ApplyAgent:
                     except Exception:
                         continue
 
-        # Strategy 3: CSS patterns for common ATS systems (Lever, Greenhouse, etc.)
+        # Strategy 5: CSS patterns
         css_patterns = [
             ('button[type="submit"]', "submit"),
             ('input[type="submit"]', "submit"),
@@ -144,7 +234,7 @@ class ApplyAgent:
                     except Exception:
                         continue
 
-        # Strategy 4: Broad text-based search as last resort
+        # Strategy 6: Broad text-based search
         for text_pattern, kind in [("submit", "submit"), ("next", "next"), ("continue", "next")]:
             btn = scope.locator(f"button:has-text('{text_pattern}')")
             if await btn.count() > 0:

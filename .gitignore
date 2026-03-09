@@ -15,9 +15,12 @@ env/
 # Environment variables
 .env
 .env.*
+!.env.example
 
 # JSON files (profile, session data, output)
 *.json
+# Keep example configs tracked
+!user_profile.example.json
 
 # Browser session / playwright state
 sessions/
